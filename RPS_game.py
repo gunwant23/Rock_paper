@@ -45,14 +45,14 @@ def play(player1, player2, num_games, verbose=False):
     return (win_rate)
 
 
-def quincy(prev_play, counter=[0]):
+def easy1(prev_play, counter=[0]):
 
     counter[0] += 1
     choices = ["R", "R", "P", "P", "S"]
     return choices[counter[0] % len(choices)]
 
 
-def mrugesh(prev_opponent_play, opponent_history=[]):
+def easy2(prev_opponent_play, opponent_history=[]):
     opponent_history.append(prev_opponent_play)
     last_ten = opponent_history[-10:]
     most_frequent = max(set(last_ten), key=last_ten.count)
@@ -64,14 +64,14 @@ def mrugesh(prev_opponent_play, opponent_history=[]):
     return ideal_response[most_frequent]
 
 
-def kris(prev_opponent_play):
+def medium(prev_opponent_play):
     if prev_opponent_play == '':
         prev_opponent_play = "R"
     ideal_response = {'P': 'S', 'R': 'P', 'S': 'R'}
     return ideal_response[prev_opponent_play]
 
 
-def abbey(prev_opponent_play,
+def medium2(prev_opponent_play,
           opponent_history=[],
           play_order=[{
               "RR": 0,
@@ -118,5 +118,57 @@ def human(prev_opponent_play):
     return play
 
 
-def random_player(prev_opponent_play):
+def random(prev_opponent_play):
     return random.choice(['R', 'P', 'S'])
+
+def markov_chain(prev_play, opponent_history=[], my_history=[], play_order=[{}]):
+    ideal_response = {'P': 'S', 'R': 'P', 'S': 'R'}
+
+    # Reset for new game
+    if not prev_play:
+        opponent_history.clear()
+        my_history.clear()
+        play_order.clear()
+        play_order.append({})
+        return 'R'
+
+    opponent_history.append(prev_play)
+    records = play_order[0]
+
+    # Update opponent-only Markov chain
+    opp_len = len(opponent_history)
+    for i in range(1, min(6, opp_len)):
+        pattern = "".join(opponent_history[-i-1:-1])
+        rec = records.setdefault(pattern, {'R': 0, 'P': 0, 'S': 0})
+        rec[prev_play] += 1
+
+    # Update combined pattern chain
+    my_len = len(my_history)
+    for i in range(1, min(3, my_len + 1)):
+        if opp_len > i:
+            combined = "".join(my_history[-i:]) + "|" + "".join(opponent_history[-i-1:-1])
+            rec = records.setdefault(combined, {'R': 0, 'P': 0, 'S': 0})
+            rec[prev_play] += 1
+
+    prediction = 'R'             
+    best_prediction, best_confidence = None, 0
+    for length in range(min(5, opp_len), 0, -1):
+        pattern = "".join(opponent_history[-length:])
+        if pattern in records:
+            counts = records[pattern]
+            total = sum(counts.values())
+            if total:
+                pred = max(counts, key=counts.get)
+                confidence = counts[pred] / total
+                if confidence > best_confidence:
+                    best_confidence, best_prediction = confidence, pred
+
+    if best_prediction:
+        prediction = best_prediction
+    elif opp_len >= 3:
+        recent = opponent_history[-5:]
+        prediction = max(('R', 'P', 'S'), key=recent.count)
+
+    my_play = ideal_response[prediction]
+    my_history.append(my_play)
+    return my_play
