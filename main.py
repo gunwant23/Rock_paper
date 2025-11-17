@@ -2,100 +2,94 @@ from RPS_game import easy1, easy2, medium, medium2, markov_chain, human, random
 import time
 import os
 
-# -------------------------
-# Color & Emoji Helpers
-# -------------------------
 GREEN = "\033[92m"
 RED = "\033[91m"
 CYAN = "\033[96m"
 YELLOW = "\033[93m"
 RESET = "\033[0m"
 
-moves_emoji = {"R": "🪨 Rock", "P": "📄 Paper", "S": "✂️ Scissors"}
+moves_ = {"R": "Rock", "P": "Paper", "S": "Scissors"}
 
-# -------------------------
-# Clear screen function
-# -------------------------
 def clear():
     os.system("cls" if os.name == "nt" else "clear")
 
 
-# -------------------------
-# USER Move Input
-# -------------------------
 def get_user_move():
     print(CYAN + "\nChoose your move:" + RESET)
-    print(" 🪨  R - Rock\n 📄  P - Paper\n ✂️  S - Scissors")
+    print("  R - Rock\n  P - Paper\n  S - Scissors")
+
     move = input("Your choice: ").strip().lower()
 
-    if move in ["r", "rock"]:
-        return "R"
-    elif move in ["p", "paper"]:
-        return "P"
-    elif move in ["s", "scissor", "scissors"]:
-        return "S"
-    else:
+    mapping = {
+        "r": "R", "rock": "R",
+        "p": "P", "paper": "P",
+        "s": "S", "scissor": "S", "scissors": "S",
+    }
+
+    if move not in mapping:
         print(RED + "Invalid choice! Try again." + RESET)
         return get_user_move()
 
+    return mapping[move]
 
-# -------------------------
-# Human Player Wrapper
-# -------------------------
+
 def human_player(prev):
     return get_user_move()
 
+# Result Computation
 
-# -------------------------
-# Provided PLAY function
-# -------------------------
-def play(player1, player2, num_games, verbose=False):
-    p1_prev = ""
-    p2_prev = ""
+def winner_of(p1, p2):
+    if p1 == p2:
+        return "tie"
+
+    wins = {
+        ("P", "R"),
+        ("R", "S"),
+        ("S", "P"),
+    }
+
+    return "p1" if (p1, p2) in wins else "p2"
+
+# PLAY Function
+
+def play(player1, player2, num_games, names=("You", "Bot"), verbose=False):
+    p1_prev = p2_prev = ""
     results = {"p1": 0, "p2": 0, "tie": 0}
 
     for _ in range(num_games):
         p1_play = player1(p2_prev)
         p2_play = player2(p1_prev)
 
-        if p1_play == p2_play:
-            results["tie"] += 1
-            winner = YELLOW + "It's a Tie!" + RESET
-        elif (p1_play == "P" and p2_play == "R") or \
-             (p1_play == "R" and p2_play == "S") or \
-             (p1_play == "S" and p2_play == "P"):
-            results["p1"] += 1
-            winner = GREEN + "You Win!" + RESET
-        else:
-            results["p2"] += 1
-            winner = RED + "Bot Wins!" + RESET
+        result = winner_of(p1_play, p2_play)
+        results[result] += 1
 
         if verbose:
-            print(f"\nYou: {moves_emoji[p1_play]}  |  Bot: {moves_emoji[p2_play]}")
-            print(winner)
+            print(f"\n{names[0]}: {moves_[p1_play]}  |  {names[1]}: {moves_emoji[p2_play]}")
 
-        p1_prev = p1_play
-        p2_prev = p2_play
-        time.sleep(0.6)
+            if result == "tie":
+                print(YELLOW + "It's a Tie!" + RESET)
+            elif result == "p1":
+                print(GREEN + f"{names[0]} Wins!" + RESET)
+            else:
+                print(RED + f"{names[1]} Wins!" + RESET)
+
+        p1_prev, p2_prev = p2_play, p1_play
+        time.sleep(0.4)
 
     return results
 
 
-# -------------------------
-# Choose Bot
-# -------------------------
-def select_bot():
-    print(CYAN + "Select Difficulty Level:" + RESET)
+# Bot Selection
+def select_bot(prompt="Select Bot:"):
+    print(CYAN + f"{prompt}" + RESET)
     print("""
- 1️⃣  Easy 1
- 2️⃣  Easy 2
- 3️⃣  Medium 1
- 4️⃣  Medium 2
- 5️⃣  Hard (Markov Chain)
- 6️⃣  Random Bot
+ 1. Easy 1
+ 2. Easy 2
+ 3. Medium 1
+ 4. Medium 2
+ 5. Hard (Markov Chain)
+ 6. Random Bot
 """)
-
-    level = input("Enter choice (1–6): ").strip()
 
     bots = {
         "1": easy1,
@@ -106,26 +100,34 @@ def select_bot():
         "6": random
     }
 
-    if level not in bots:
+    choice = input("Enter choice (1-6): ").strip()
+
+    if choice not in bots:
         print(RED + "Invalid option. Try again.\n" + RESET)
-        return select_bot()
+        return select_bot(prompt)
 
-    print(GREEN + "\nBot Selected Successfully!\n" + RESET)
-    return bots[level]
+    print(GREEN + "Bot Selected Successfully!\n" + RESET)
+    return bots[choice], f"Bot-{choice}"
 
-
-# -------------------------
-# MAIN GAME
 # -------------------------
 def main():
     clear()
-    print(YELLOW + "🎮 WELCOME TO ROCK • PAPER • SCISSORS 🎮" + RESET)
+    print(YELLOW + "WELCOME TO ROCK • PAPER • SCISSORS" + RESET)
     time.sleep(1)
 
     while True:
-        bot = select_bot()
-        rounds = input("\nHow many rounds do you want to play? ").strip()
+        print(CYAN + "\nChoose Mode:" + RESET)
+        print("""
+ 1. Human vs Bot
+ 2. Bot vs Bot
+""")
+        mode = input("Enter choice (1/2): ").strip()
 
+        if mode not in ["1", "2"]:
+            print(RED + "Invalid choice" + RESET)
+            continue
+
+        rounds = input("\nHow many rounds? ").strip()
         if not rounds.isdigit():
             print(RED + "Enter a valid number!" + RESET)
             continue
@@ -133,21 +135,40 @@ def main():
         rounds = int(rounds)
         clear()
 
-        print(CYAN + f"\nStarting Game for {rounds} Rounds...\n" + RESET)
-        time.sleep(1)
+        if mode == "1":
+            bot, bot_name = select_bot()
+            results = play(human_player, bot, rounds, names=("You", bot_name), verbose=True)
 
-        results = play(human_player, bot, rounds, verbose=True)
+        else:  # BOT vs BOT
+            bot1, name1 = select_bot("Select Bot 1:")
+            bot2, name2 = select_bot("Select Bot 2:")
 
-        print("\n" + YELLOW + "🏆 FINAL RESULTS 🏆" + RESET)
-        print(f"😎 You Won: {GREEN}{results['p1']}{RESET}")
-        print(f"🤖 Bot Won: {RED}{results['p2']}{RESET}")
-        print(f"😐 Ties: {YELLOW}{results['tie']}{RESET}")
+            print(CYAN + f"\n{YELLOW}{name1}{CYAN} VS {YELLOW}{name2}{RESET}")
+            time.sleep(1)
+
+            results = play(bot1, bot2, rounds, names=(name1, name2), verbose=True)
+
+        # Final Results
+        print("\n" + YELLOW + " FINAL RESULTS " + RESET)
+        print(f"{GREEN}P1 Wins:{RESET} {results['p1']}")
+        print(f"{RED}P2 Wins:{RESET} {results['p2']}")
+        print(f"{YELLOW}Ties:{RESET} {results['tie']}")
+
+        diff = results['p1'] - results['p2']
+        if diff > 0:
+            print(GREEN + f"Player 1 wins by {diff}!" + RESET)
+        elif diff < 0:
+            print(RED + f"Player 2 wins by {abs(diff)}!" + RESET)
+        else:
+            print(YELLOW + "It's a tie!" + RESET)
 
         again = input("\nPlay Again? (y/n): ").strip().lower()
         if again != "y":
-            print(GREEN + "\nThanks for playing! 👋" + RESET)
             break
+
         clear()
+
+    print(GREEN + "\nThanks for playing!" + RESET)
 
 
 if __name__ == "__main__":
