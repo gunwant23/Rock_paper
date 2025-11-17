@@ -1,6 +1,7 @@
-from RPS_game import easy1, easy2, medium, medium2, markov_chain, human, random
+from RPS_game import easy1, easy2, medium, medium2, markov_chain, human, random_bot
 import time
 import os
+from graph import plot_graph
 
 GREEN = "\033[92m"
 RED = "\033[91m"
@@ -55,16 +56,18 @@ def winner_of(p1, p2):
 def play(player1, player2, num_games, names=("You", "Bot"), verbose=False):
     p1_prev = p2_prev = ""
     results = {"p1": 0, "p2": 0, "tie": 0}
+    history = []
 
     for _ in range(num_games):
-        p1_play = player1(p2_prev)
-        p2_play = player2(p1_prev)
+        p1_play = player1(p1_prev)
+        p2_play = player2(p2_prev)
 
         result = winner_of(p1_play, p2_play)
         results[result] += 1
+        history.append(result)
 
         if verbose:
-            print(f"\n{names[0]}: {moves_[p1_play]}  |  {names[1]}: {moves_emoji[p2_play]}")
+            print(f"\n{names[0]}: {moves_[p1_play]}  |  {names[1]}: {moves_[p2_play]}")
 
             if result == "tie":
                 print(YELLOW + "It's a Tie!" + RESET)
@@ -76,7 +79,7 @@ def play(player1, player2, num_games, names=("You", "Bot"), verbose=False):
         p1_prev, p2_prev = p2_play, p1_play
         time.sleep(0.4)
 
-    return results
+    return results, history
 
 
 # Bot Selection
@@ -97,7 +100,7 @@ def select_bot(prompt="Select Bot:"):
         "3": medium,
         "4": medium2,
         "5": markov_chain,
-        "6": random
+        "6": random_bot
     }
 
     choice = input("Enter choice (1-6): ").strip()
@@ -137,7 +140,7 @@ def main():
 
         if mode == "1":
             bot, bot_name = select_bot()
-            results = play(human_player, bot, rounds, names=("You", bot_name), verbose=True)
+            results, history = play(human_player, bot, rounds, names=("You", bot_name), verbose=True)
 
         else:  # BOT vs BOT
             bot1, name1 = select_bot("Select Bot 1:")
@@ -146,7 +149,7 @@ def main():
             print(CYAN + f"\n{YELLOW}{name1}{CYAN} VS {YELLOW}{name2}{RESET}")
             time.sleep(1)
 
-            results = play(bot1, bot2, rounds, names=(name1, name2), verbose=True)
+            results, history = play(bot1, bot2, rounds, names=(name1, name2), verbose=True)
 
         # Final Results
         print("\n" + YELLOW + " FINAL RESULTS " + RESET)
@@ -161,6 +164,12 @@ def main():
             print(RED + f"Player 2 wins by {abs(diff)}!" + RESET)
         else:
             print(YELLOW + "It's a tie!" + RESET)
+
+        # Plot graph after results
+        if mode == "2":  # Only for Bot vs Bot
+            plot_graph(history, name1, name2)
+        elif mode == "1":  # For Human vs Bot, use bot_name
+            plot_graph(history, "You", bot_name)
 
         again = input("\nPlay Again? (y/n): ").strip().lower()
         if again != "y":

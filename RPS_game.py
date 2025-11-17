@@ -118,7 +118,7 @@ def human(prev_opponent_play):
     return play
 
 
-def random(prev_opponent_play):
+def random_bot(prev_opponent_play):
     return random.choice(['R', 'P', 'S'])
 
 def markov_chain(prev_play, opponent_history=[], my_history=[], play_order=[{}]):

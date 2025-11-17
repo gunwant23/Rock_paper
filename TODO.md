@@ -1,1 +1,0 @@
-- [x] Add logic in main.py after final results to print win/defeat message based on results['p1'] - results['p2']
